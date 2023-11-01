@@ -23,7 +23,7 @@ function def_rho_matrix(levels)
     end #!Revisar lo de la asignación con las variables globales
     #println(rho_matrix)
     #println(rho_matrix[1,1])  #Julia comienza a contar en 1, no en 0 como python.
-return np.matrix(rho_matrix)
+return rho_matrix
 end
 
 function Hamiltonian(Omegas, Deltas)
@@ -33,7 +33,7 @@ function Hamiltonian(Omegas, Deltas)
     h_bar = 1 for simplicity.
     Both lists should be in ascending order (Omega_12, Omega_23 etc) """
     levels = length(Omegas)+1
-    H = np.zeros((levels,levels))
+    H = np.zeros((levels,levels),dtype="object")
     for i in 1:levels
         for j in 1:levels
             if i==j && i!=1
@@ -256,13 +256,209 @@ function steady_state_soln(Omegas, Deltas, Gammas, gammas = [])
     return soln
 end
 
+function fast_3_level(Omegas, Deltas, Gammas, gammas = [])
+    """
+    Calculate the analytic solution of the steady-state probe coherence 
+    (rho_{21}) in the weak probe limit for a 3-level ladder system.
 
+    Args:
+        Omegas (list of floats): Rabi frequencies of fields coupling each pair 
+            of states in the ladder, from lowest to highest energy states 
+            (Omega_{12}, ..., Omega{n-1,n} for n levels).
+        Deltas (list of floats): Detuning of fields coupling each pair 
+            of states in the ladder, from lowest to highest energy states 
+            (Delta_{12}, ..., Delta{n-1,n} for n levels).
+        Gammas (list of floats): Linewidth of the atomic states considered. 
+            Assumes no decay from lowest energy atomic state (Gamma_1 = 0).
+            Values should be given in order of lowest to highest energy level 
+            (Gamma_2, Gamma_3, ... , Gamma_n for n levels). 
+            n-1 values for n levels.
+        gammas (list of floats, optional): Linewidths of the field coupling 
+            each pair of states in the ladder, from lowest to highest energy 
+            (gamma_{12}, ..., gamma{n-1,n} for n levels). 
+            Defaults to [] (meaning all gamma_ij = 0).
+
+    Returns:
+        complex: steady-state value of the probe coherence (rho_{21})
+        """  
+    Delta_12, Delta_23 = Deltas[:]
+    Omega_12, Omega_23 = Omegas[:]
+    Gamma_2, Gamma_3 = Gammas[:]
+    if length(gammas) != 0
+        gamma_12, gamma_23 = gammas[:]
+    
+    else
+        gamma_12, gamma_23 = 0, 0
+    end
+    expression = ((Omega_23^2)/4)/(1im*(Delta_12 + Delta_23) + (Gamma_3/2)
+    + gamma_12 + gamma_23)
+    bottom = (1im*Delta_12) + (Gamma_2/2) + gamma_12 + expression
+    rho = (1im*Omega_12)/(2*bottom)
+    
+    return np.conjugate(rho)
+end
+
+function fast_4_level(Omegas, Deltas, Gammas, gammas = [])
+    """
+    Analytic solution of the steady-state probe coherence (rho_{21}) 
+    in the weak probe limit for a 4-level ladder system.
+
+    Args:
+        Omegas (list of floats): Rabi frequencies of fields coupling each pair 
+            of states in the ladder, from lowest to highest energy states 
+            (Omega_{12}, ..., Omega{n-1,n} for n levels).
+        Deltas (list of floats): Detuning of fields coupling each pair 
+            of states in the ladder, from lowest to highest energy states 
+            (Delta_{12}, ..., Delta{n-1,n} for n levels).
+        Gammas (list of floats): Linewidth of the atomic states considered. 
+            Assumes no decay from lowest energy atomic state (Gamma_1 = 0).
+            Values should be given in order of lowest to highest energy level 
+            (Gamma_2, Gamma_3, ... , Gamma_n for n levels). 
+            n-1 values for n levels.
+        gammas (list of floats, optional): Linewidths of the field coupling 
+            each pair of states in the ladder, from lowest to highest energy  
+            (gamma_{12}, ..., gamma{n-1,n} for n levels). 
+            Defaults to [] (meaning all gamma_ij = 0).
+
+    Returns:
+        complex: steady-state value of the probe coherence (rho_{21})
+    """    
+    Omega_12, Omega_23, Omega_34 = Omegas[:]
+    Delta_12, Delta_23, Delta_34 = Deltas[:]
+    Gamma_2, Gamma_3, Gamma_4 = Gammas[:]
+    if length(gammas) != 0
+        gamma_12, gamma_23, gamma_34 = gammas[:]
+    else
+        gamma_12, gamma_23, gamma_34 = 0,0,0
+    end
+    bracket_1 = 1im*(Delta_12 + Delta_23 + Delta_34) - gamma_12 - gamma_23 - 
+    gamma_34 - (Gamma_4/2)
+    bracket_2 = 1im*(Delta_12 + Delta_23) - (Gamma_3/2) - gamma_12 - gamma_23 +
+    (Omega_34^2)/(4*bracket_1)
+    bracket_3 = 1im*Delta_12 - (Gamma_2/2) - gamma_12 + (
+        Omega_23^2)/(4*bracket_2)
+    return (1im*Omega_12)/(2*bracket_3)
+end
+
+function term_n(n, Deltas, Gammas, gammas = [])
+    """
+    Generate the nth term in the iterative expansion method for calculating 
+    the probe coherence (rho_{21}) for an arbitrary number of levels in the 
+    weak-probe limit.
+
+    Args:
+        n (int): Index (for n>0)
+        Deltas (list of floats): Detuning of fields coupling each pair 
+            of states in the ladder, from lowest to highest energy states 
+            (Delta_{12}, ..., Delta{n-1,n} for n levels).
+        Gammas (list of floats): Linewidth of the atomic states considered. 
+            Assumes no decay from lowest energy atomic state (Gamma_1 = 0).
+            Values should be given in order of lowest to highest energy level 
+            (Gamma_2,Gamma_3, ... , Gamma_n for n levels). 
+            n-1 values for n levels.
+        gammas (list of floats, optional): Linewidths of the fields coupling 
+            each pair of states in the ladder, from lowest to highest energy 
+            (gamma_{12}, ..., gamma{n-1,n} for n levels).
+            Defaults to [] (meaning all gamma_ij = 0).
+
+    Returns:
+        complex float: value of the probe coherence (\rho_{21}) 
+            in the steady-state
+    """
+    if n > length(Deltas) || n > length(Gammas)
+        throw(ArgumentError("n should be smaller or equal to the length of Deltas and Gammas"))
+    end
+    if length(gammas) == 0
+        gammas = np.zeros((length(Deltas))) 
+    end 
+    # n>0
+    return 1im*(np.sum(Deltas[1:n+1])) - (Gammas[n+1]/2) - np.sum(
+        gammas[1:n+1])
+end
+
+function time_op(operator, t)
+    """Creates expresion for the time evolution operator. 
+
+    Args:
+        operator (matrix): Operator describing the time evolution of a system 
+            in matrix form
+        t (float): Time at which the expression is to be evaluated
+
+    Returns:
+        numpy.matrix: matrix form of the time evolution operator 
+            exp^{operator*t}
+    """    
+    exponent = operator*t
+    return exp(exponent) #linalg.expm does matrix exponentiation
+end
+
+function time_evolve(operator, t, psi_0)
+    """
+    Evaluate the state of a system at a time t, given an operator 
+    describing its time evolution and the state of the system at t=0.
+
+    Args:
+        operator (matrix): matrix representation of operator describing 
+            time evolution of the system.
+        t (float): Time at which the state of the system is to be evaluated.
+        psi_0 (1D array): Vector describing the initial state of the system 
+            (at t=0).
+
+    Returns:
+        1D array: the state of the system at time t
+    """    
+    return np.matmul(time_op(operator, t), psi_0)
+end
+
+function time_dep_matrix(Omegas, Deltas, Gammas, gammas = [])
+    """
+    Given lists of parameters (all in order of lowers to highest energy level), 
+    construct matrix of coefficients for time evolution of 
+    the density matrix vector.
+
+    Args:
+        Omegas (list of floats): Rabi frequencies of fields coupling each pair 
+            of states in the ladder, from lowest to highest energy states 
+            (Omega_{12}, ..., Omega{n-1,n} for n levels).
+        Deltas (list of floats): Detuning of fields coupling each pair 
+            of states in the ladder, from lowest to highest energy states 
+            (Delta_{12}, ..., Delta{n-1,n} for n levels).
+        Gammas (list of floats): Linewidth of the atomic states considered. 
+            Assumes no decay from lowest energy atomic state (Gamma_1 = 0).
+            Values should be given in order of lowest to highest energy level 
+            (Gamma_2, Gamma_3, ... , Gamma_n for n levels). 
+            n-1 values for n levels.
+        gammas (list of floats, optional): Linewidths of the fields coupling 
+            each pair of states in the ladder, from lowest to highest energy 
+            (gamma_{12}, ..., gamma{n-1,n} for n levels).
+            Defaults to [] (meaning all gamma_ij = 0).  
+    Returns:
+        ndarray: n^2 x n^2 array (for an n-level system) of coefficients M 
+            which satisfies the equation drho_{vect}/dt = Mrho_{vect} 
+            where rho_{vect} is the vector representation of the 
+            density matrix.
+    """    
+    # first create decay/dephasing operators
+    L_atom = L_decay(Gammas)
+    if length(gammas) != 0
+        L_laser = L_dephasing(gammas)
+        L_tot = L_atom + L_laser
+    else
+        L_tot = L_atom
+    end
+    H = Hamiltonian(Omegas, Deltas) #create the total Hamiltonian
+    Master = Master_eqn(H, L_tot) 
+    rho_coeffs = OBE_matrix(Master) #create matrix of coefficients
+    return rho_coeffs
+end
+
+    
+
+#x= def_rho_matrix(3)
 Deltas = [1]
 Omegas = [2]
 Gammas = [5]
 gammas = [0.1]
-
-#x= def_rho_matrix(3)
 Ldecay = L_decay(Gammas)
 Ldeph = L_dephasing(gammas)
 L = Ldecay+Ldeph
@@ -270,29 +466,8 @@ H = Hamiltonian(Omegas, Deltas)
 master=Master_eqn(H,L)
 coeff_mat=OBE_matrix(master)
 svd=SVD(coeff_mat)
-x = steady_state_soln(Omegas, Deltas, Gammas, gammas)
+x = time_dep_matrix(Omegas, Deltas, Gammas, gammas)
+println(x)
 
 
-Omegas = [1,5] #2pi MHz
-Deltas = [0.0,0.0] #2pi MHz
-Gammas = [0.5,0.1] #2pi MHz
-# Create symmetric array of values for probe detuning (\Delta_{12})
-Delta_12 = np.linspace(-10,10,200) #2pi MHz
-probe_abs = np.zeros((2, length(Delta_12))) #Create blank array to store solution
 
-for (i, p) in enumerate(Delta_12)
-    Deltas[1] = p # update value of \Delta_{12}
-    solution = steady_state_soln(Omegas, Deltas, Gammas)
-    probe_abs[1,i] = imag(solution[2])
-    # repeat but with the second field 'turned off' (\Omega_{23} = 0)
-    solution = steady_state_soln([1,0], Deltas, Gammas)
-    probe_abs[2,i] = imag(solution[2])
-end
-
-figure()
-plot(Delta_12, probe_abs[2,:], label = "\\Omega_{23} = 0 MHz")
-plot(Delta_12, probe_abs[1,:], label = "\\Omega_{23} = 5 MHz")
-xlabel("Probe detuning \\Delta_{12} (MHz)")
-ylabel("Probe absorption (-\\Im[\\rho_{21}])")
-legend(loc = "best")
-show()
