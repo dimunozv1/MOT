@@ -1,7 +1,8 @@
 using GenericLinearAlgebra
+using LinearAlgebra
 using SymPy
 using PyCall
-using PyPlot
+#using PyPlot
 np = pyimport("numpy")
 
 function create_rho_list(levels = 3)
@@ -45,6 +46,29 @@ function Hamiltonian(Omegas, Deltas)
         end
     end
     return np.matrix(H/2)
+end
+
+function Hamil(Omegas, Deltas)
+    #Given lists of Rabi frequencies and detunings, construct interaction 
+    """
+    Hamiltonian (assuming RWA and dipole approximation) as per equation 14. 
+    h_bar = 1 for simplicity.
+    Both lists should be in ascending order (Omega_12, Omega_23 etc) """
+    levels = length(Omegas)+1
+    H = np.zeros((levels,levels),dtype="float")
+    #H = zeros(ComplexF64, length(levels), length(levels))
+    for i in 1:levels
+        for j in 1:levels
+            if i==j && i!=1
+                H[i,j]= Deltas[i-1]
+            elseif i!=j && i==1
+                H[i,j]= Omegas[i]
+            elseif i!=j && j==1 
+                H[i,j]= Omegas[j]
+            end
+        end
+    end
+    return np.matrix(H)
 end
 
 function L_decay(Gammas)
@@ -446,7 +470,7 @@ function time_dep_matrix(Omegas, Deltas, Gammas, gammas = [])
     else
         L_tot = L_atom
     end
-    H = Hamiltonian(Omegas, Deltas) #create the total Hamiltonian
+    H = Hamil(Omegas, Deltas) #create the total Hamiltonian
     Master = Master_eqn(H, L_tot) 
     rho_coeffs = OBE_matrix(Master) #create matrix of coefficients
     return rho_coeffs
@@ -469,7 +493,8 @@ function force_operator(Omegas,k,x)
     
     levels = 3 
     Omega = Omegas[1]   
-    F = np.zeros((levels,levels),dtype="Float64")
+    F = zeros(ComplexF64, levels, levels)
+    
     for i in 1:levels
         for j in 1:levels
             if(i==j)
@@ -501,11 +526,8 @@ end
 function update_velocity_position(x,y,vx,vy,dt,F)
     
     force = F
-    println(force)
-    if isa(force, Sym)
-        force = N(force)
-    end
-    println(typeof(force))
+    
+    
     theta = atan(y/x)
     fx = force
     fy = 0.0 
@@ -538,7 +560,7 @@ psi_0 = [1.0, 0.0]
 #Make a plot of the populations of the first state for each of the different detunings
 
 #Make a hamiltonian for each of the different detunings
-println(def_rho_matrix(2))
+
 #=
 figure()
 for i in 1:length(Deltas)
