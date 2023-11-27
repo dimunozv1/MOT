@@ -89,8 +89,8 @@ function Hamil3(Omegas, Deltas,k,x)
             end
         end
     end
-    H[1,2] = -Omega*ℯ^(1im*k*x)
-    H[1,3] = -Omega*ℯ^(-1im*k*x)
+    H[1,2] = Omega*ℯ^(1im*k*x)
+    H[1,3] = Omega*ℯ^(-1im*k*x)
     H[2,1] = Omega*ℯ^(-1im*k*x)
     H[3,1] = Omega*ℯ^(1im*k*x)
     return H
@@ -528,19 +528,31 @@ function force_operator(Omegas,k,x)
             
         end
     end
-    F[1,2] = -Omega*ℯ^(1im*k*x)
-    F[1,3] = -Omega*ℯ^(-1im*k*x)
-    F[2,1] = Omega*ℯ^(-1im*k*x)
-    F[3,1] = Omega*ℯ^(1im*k*x)
+    F[1,2] = Omega*k*ℯ^(1im*k*x)
+    F[1,3] = -Omega*k*ℯ^(-1im*k*x)
+    F[2,1] = -Omega*k*ℯ^(-1im*k*x)
+    F[3,1] = Omega*k*ℯ^(1im*k*x)
     return F
 end
 
 function update_detuning(Deltas,Delta_0,g,mu_B,B,k,v_x)
         
-        Deltas[1] = Delta_0 - g*mu_B*B+k*v_x
-        Deltas[2] = Delta_0 - g*mu_B*B+k*v_x
+        Deltas[1] = Delta_0 + g*mu_B*B + k*v_x
+        Deltas[2] = Delta_0 - g*mu_B*B - k*v_x
        
     
+end
+
+function Magnetic_field(B_0,x)
+    B = B_0*x
+    return B
+end
+function update_detuning2(Deltas,Delta_0,g,mu_B,B_0,k,v_x,x)
+    B = Magnetic_field(B_0,x)   
+    Deltas[1] = Delta_0 - g*mu_B*B + k*v_x
+    Deltas[2] = Delta_0 - g*mu_B*B + k*v_x
+   
+
 end
 
 function expected_value(operator, density_matrix)
