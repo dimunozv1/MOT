@@ -16,13 +16,13 @@ T = 2.0e-3 #K
 k_b = 8.617e-5 #eV/K
 m = 1.443e-25 #kg
 x_position = 0.0
-y_position = 5.0
+y_position = 0.0
 x_velocity = sqrt(k_b*T/m)
 y_velocity = 0.0
 
-#time
-dt = 0.1
-time = 10.0
+    #time
+    dt = 0.1e-9
+    time = 16.0e-9
 
 #Constants
 g = 1.0
@@ -61,7 +61,7 @@ end
 println(typeof(time_list))
 p = plot(time_list, x_positions, xlabel="time", ylabel="x position", title="atom_in_mot")
 savefig(p, "atom_in_mot.png")
-p = plot(time_list, x_velocities, xlabel="time", ylabel="x velocity", title="atom_in_mot velocity")
+p = plot(time_list, x_velocities, xlabel="time", ylabel="x velocity", xlims =(0,5.00e-9),ylims = (0,100),  title="atom_in_mot velocity")
 savefig(p, "atom_in_mot_velocity.png")
 # Plot the trajectory of the ball
 

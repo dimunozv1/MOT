@@ -71,6 +71,31 @@ function Hamil(Omegas, Deltas)
     return np.matrix(H)
 end
 
+function Hamil3(Omegas, Deltas,k,x)
+    #Given lists of Rabi frequencies, detunings, position and wavevector, construct interaction 
+    """
+    Hamiltonian (assuming RWA and dipole approximation) 
+    h_bar = 1 for simplicity.
+    Both lists should be in ascending order (Omega_12, Omega_23 etc) """
+    levels = length(Omegas)+1
+    Omega=Omegas[1]
+    #H = np.zeros((levels,levels),dtype="float")
+    
+    H = zeros(ComplexF64, levels, levels)
+    for i in 1:levels
+        for j in 1:levels
+            if i==j && i!=1
+                H[i,j]= - Deltas[i-1] 
+            end
+        end
+    end
+    H[1,2] = -Omega*ℯ^(1im*k*x)
+    H[1,3] = -Omega*ℯ^(-1im*k*x)
+    H[2,1] = Omega*ℯ^(-1im*k*x)
+    H[3,1] = Omega*ℯ^(1im*k*x)
+    return H
+end
+
 function L_decay(Gammas)
     """
     Given a list of linewidths for each atomic level, 
@@ -547,8 +572,8 @@ times = range(0, stop=8 * π, length=500)
 
 # Define parameters
 
-Omega1 = [1.0]  # Rabi frequency of field coupling levels 1 and 2
-Delta1 = [0.0]
+Omega1 = [1.0,1.0]  # Rabi frequency of field coupling levels 1 and 2
+Delta1 = [0.0,0.0]
 Delta2 = [0.5]
 Delta3 = [1.0]
 Delta4 = [2.0]
@@ -556,6 +581,8 @@ Deltas = [Delta1, Delta2, Delta3, Delta4]
 # Define initial state vector at t=0
 psi_0 = [1.0, 0.0]
 
+H = Hamil3(Omega1, Delta1,0.0,0.0)
+println(H)
 # Create Hamiltonian
 #Make a plot of the populations of the first state for each of the different detunings
 
