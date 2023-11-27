@@ -459,7 +459,7 @@ function time_evolve(operator, t, psi_0)
     return np.matmul(time_op(operator, t), psi_0)
 end
 
-function time_dep_matrix(Omegas, Deltas, Gammas, gammas = [])
+function time_dep_matrix(Omegas, Deltas, Gammas,k,x,gammas = [])
     """
     Given lists of parameters (all in order of lowers to highest energy level), 
     construct matrix of coefficients for time evolution of 
@@ -495,7 +495,7 @@ function time_dep_matrix(Omegas, Deltas, Gammas, gammas = [])
     else
         L_tot = L_atom
     end
-    H = Hamil(Omegas, Deltas) #create the total Hamiltonian
+    H = Hamil3(Omegas, Deltas,k,x) #create the total Hamiltonian
     Master = Master_eqn(H, L_tot) 
     rho_coeffs = OBE_matrix(Master) #create matrix of coefficients
     return rho_coeffs
@@ -581,8 +581,7 @@ Deltas = [Delta1, Delta2, Delta3, Delta4]
 # Define initial state vector at t=0
 psi_0 = [1.0, 0.0]
 
-H = Hamil3(Omega1, Delta1,0.0,0.0)
-println(H)
+
 # Create Hamiltonian
 #Make a plot of the populations of the first state for each of the different detunings
 

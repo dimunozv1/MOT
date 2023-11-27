@@ -13,16 +13,16 @@ rho_t = zeros(Float64, length(times), 4)
 
 #Initial conditions atom 
 T = 2.0e-3 #K
-k_b = 8.617e-5 #eV/K
+k_b = 1.38e-23 #J/K
 m = 1.443e-25 #kg
 x_position = 0.0
 y_position = 0.0
 x_velocity = sqrt(k_b*T/m)
 y_velocity = 0.0
-
-    #time
-    dt = 0.1e-9
-    time = 16.0e-9
+println("x_velocity ", x_velocity)
+#time
+dt = 0.1e-9
+time = 32.0e-9
 
 #Constants
 g = 1.0
@@ -48,7 +48,7 @@ for t in 1:Int(time / dt)
     
     update_detuning(Deltas,Delta_0,g,mu_B,B,k,x_velocity) # Update detunings
     
-    M = time_dep_matrix(Omegas, Deltas, Gammas)
+    M = time_dep_matrix(Omegas, Deltas, Gammas,k,x_position) # Calculate the time dependent matrix
     
     density_array_t = time_evolve(M, t, rho_0) # Perform time evolution of the density matrix
     density_mat_t = reshape(density_array_t, (3, 3)) # Reshape the density matrix into a 3x3 matrix
@@ -58,16 +58,16 @@ for t in 1:Int(time / dt)
     global x_position, y_position, x_velocity, y_velocity = update_velocity_position(x_position,y_position,x_velocity,y_velocity,dt,F_t)
     
 end
-println(typeof(time_list))
+
 p = plot(time_list, x_positions, xlabel="time", ylabel="x position", title="atom_in_mot")
 savefig(p, "atom_in_mot.png")
-p = plot(time_list, x_velocities, xlabel="time", ylabel="x velocity", xlims =(0,5.00e-9),ylims = (0,100),  title="atom_in_mot velocity")
+p = plot(time_list, x_velocities, xlabel="time", ylabel="x velocity",  title="atom_in_mot velocity")
 savefig(p, "atom_in_mot_velocity.png")
 # Plot the trajectory of the ball
-
+println("x_position ", x_positions)
 anim = @animate for i in 1:length(x_positions)
     plot([x_positions[i]], [y_positions[i]], seriestype=:scatter, marker=:circle, ms=10,
-        xlim=(-15, 15), ylim=(-2, 15), xlabel="X Position", ylabel="Y Position",
+        xlim=(-10e-9, 10e-9), ylim=(-2e-9, 15e-9), xlabel="X Position", ylabel="Y Position",
         title="atom_in_mot", legend=false)
 end
 
