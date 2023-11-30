@@ -133,6 +133,30 @@ function L_decay(Gammas)
     
 end
 
+function L_decay_new(Gammas)
+    """
+    Given a list of linewidths for each atomic level, 
+    construct atomic decay operator in matrix form for a ladder system.
+    Assumes that there is no decay from the lowest level (Gamma_1 = 0).
+    """
+   
+    levels = length(Gammas)+1
+    rhos = def_rho_matrix(levels)
+    Gammas_all = [0; Gammas] #Adds a zero because there is no decay from the lowest level
+    decay_matrix = np.zeros((levels,levels), dtype = "object")
+    
+    decay_matrix[1,1] = (Gammas[1])*rhos[3,3] + Gammas[2]*rhos[2,2]
+    decay_matrix[2,2] = -Gammas[2]*rhos[2,2]
+    decay_matrix[3,3] = -Gammas[1]*rhos[3,3]
+    decay_matrix[1,2] = -0.5*(Gammas[2])*rhos[1,2]
+    decay_matrix[2,1] = -0.5*(Gammas[2])*rhos[2,1]
+    decay_matrix[1,3] = -0.5*(Gammas[1])*rhos[1,3]
+    decay_matrix[3,1] = -0.5*(Gammas[1])*rhos[3,1]
+    decay_matrix[2,3] =  -0.5*(Gammas[1]+Gammas[2])*rhos[2,3]
+    decay_matrix[3,2] =  -0.5*(Gammas[1]+Gammas[2])*rhos[3,2]
+    return np.matrix(decay_matrix)
+    
+end
 function L_dephasing(gammas)
     """
     Given list of laser linewidths, create dephasing operator in matrix form. 
@@ -290,7 +314,7 @@ function steady_state_soln(Omegas, Deltas, Gammas, gammas = [])
             function (rho_11, rho_12, ..., rho_{n, n-1}, rho_nn).
             Will be length n for an n-level system.
     """    
-    L_atom = L_decay(Gammas)
+    L_atom = L_decay_new(Gammas)
     if length(gammas) != 0
         L_laser = L_dephasing(gammas)
         L_tot = L_atom + L_laser
@@ -488,7 +512,7 @@ function time_dep_matrix(Omegas, Deltas, Gammas,k,x,gammas = [])
             density matrix.
     """    
     # first create decay/dephasing operators
-    L_atom = L_decay(Gammas)
+    L_atom = L_decay_new(Gammas)
     if length(gammas) != 0
         L_laser = L_dephasing(gammas)
         L_tot = L_atom + L_laser
@@ -528,11 +552,11 @@ function force_operator(Omegas,k,x)
             
         end
     end
-    F[1,2] = Omega*k*ℯ^(1im*k*x)
-    F[1,3] = -Omega*k*ℯ^(-1im*k*x)
-    F[2,1] = -Omega*k*ℯ^(-1im*k*x)
-    F[3,1] = Omega*k*ℯ^(1im*k*x)
-    return F
+    F[1,2] = Omega*k*exp(1im*k*x)
+    F[1,3] = -Omega*k*exp(-1im*k*x)
+    F[2,1] = -Omega*k*exp(-1im*k*x)
+    F[3,1] = Omega*k*exp(1im*k*x)
+    return 1im*F
 end
 
 function update_detuning(Deltas,Delta_0,g,mu_B,B,k,v_x)
@@ -549,8 +573,8 @@ function Magnetic_field(B_0,x)
 end
 function update_detuning2(Deltas,Delta_0,g,mu_B,B_0,k,v_x,x)
     B = Magnetic_field(B_0,x)   
-    Deltas[1] = Delta_0 - g*mu_B*B + k*v_x
-    Deltas[2] = Delta_0 - g*mu_B*B + k*v_x
+    Deltas[1] = Delta_0 + g*mu_B*B + k*v_x
+    Deltas[2] = Delta_0 - g*mu_B*B - k*v_x
    
 
 end
